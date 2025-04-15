@@ -8,6 +8,17 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
+import { initializeApp } from 'firebase/app';
+import { firebaseConfig } from '../firebaseConfig'
+// Initialize Firebase (ensure this only runs once per app load)
+try {
+  initializeApp(firebaseConfig);
+  console.log("Firebase initialized successfully!"); // Optional confirmation
+} catch (e) {
+  console.error("Firebase initialization error:", e);
+}
+
+
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
