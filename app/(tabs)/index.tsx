@@ -5,6 +5,10 @@ import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
+
+const FUNCTION_URL =  'https://us-central1-molliepartnersim.cloudfunctions.net/helloWorld';
+
+
 export default function HomeScreen() {
   return (
     <ParallaxScrollView
@@ -16,7 +20,7 @@ export default function HomeScreen() {
         />
       }>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
+        <ThemedText type="title">Steyn legend!</ThemedText>
         <HelloWave />
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
