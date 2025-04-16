@@ -16,7 +16,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true); //start loading
   const [responseData, setResponseData] = useState<string | null>(null); //assumming text response
   const [error, setError] = useState<string | null>(null); //error message
-  const {logout} = useAuth() //logout function from context
+  const {logout, user} = useAuth() //logout function from context
 
   useEffect(() => {
     const fetchData = async () => {
@@ -72,14 +72,8 @@ export default function HomeScreen() {
         />
       }>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Testing the backend</ThemedText>
+        <ThemedText type="title">Welcome {user?.name}! </ThemedText>
         <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">It should display a welcoming message</ThemedText>
-        <ThemedText>
-          {responseData}
-        </ThemedText>
       </ThemedView>
       <View style={styles.buttonContainer}>
         <Button title="Logout" onPress={logout} />

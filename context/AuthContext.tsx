@@ -4,8 +4,15 @@ import { useRouter } from 'expo-router';
 // Defining the shape of the context data 
 interface AuthContextData {
     isAuthenticated: boolean;
-    login: () => void; //Simple login simulation for now
+    user: User | null; // Add user state
+    login: (userData: User) => void; // login now accepts userData
     logout: () => void;
+  }
+
+export interface User {
+    userId: string;
+    name: string;
+    email: string;
 }
 
 // Create the context
@@ -23,32 +30,36 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [user, setUser] = useState<User | null>(null); // Add state for user data
     const router = useRouter();
-
-    const login = () => {
-        console.log('AuthContext: Simulating login...');
-        setIsAuthenticated(true);
-        //navigate to the main app screen after status update
-        router.replace('/'); //navigate to root, which resolves to app/(app)/index.tsx
+  
+    // login now accepts userData and stores it
+    const login = (userData: User) => { 
+      console.log("AuthContext: Logging in user:", userData);
+      setUser(userData); // Store the user data
+      setIsAuthenticated(true);
+      router.replace('/'); 
     };
-
-    const logout = () => {
-        console.log('AuthContext: Simulating logout...');
-        setIsAuthenticated(false);
-        router.replace('/login'); //navigate to login screen
+  
+    // logout now clears the user data as well
+    const logout = () => { 
+      console.log("AuthContext: Logging out...");
+      setUser(null); // Clear user data
+      setIsAuthenticated(false);
+      router.replace('/login'); 
     };
-
+  
+    // Provide the updated value including the user
     const value = {
-        isAuthenticated,
-        login,
-        logout, 
+      isAuthenticated,
+      user, // Provide user state
+      login,
+      logout,
     };
-
+  
     return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
+      <AuthContext.Provider value={value}>
+        {children} 
+      </AuthContext.Provider>
     );
-}
-
-
+  }
