@@ -1,4 +1,4 @@
-import { Image, StyleSheet, Platform, Text, View, ActivityIndicator, Alert } from 'react-native';
+import { Image, StyleSheet, Platform, Text, View, ActivityIndicator, Alert, Button } from 'react-native';
 
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
@@ -7,6 +7,7 @@ import { ThemedView } from '@/components/ThemedView';
 
 import React, { useState, useEffect } from 'react';
 
+import { useAuth } from '@/context/AuthContext';
 
 const FUNCTION_URL =  'https://us-central1-molliepartnersim.cloudfunctions.net/helloWorld';
 
@@ -15,6 +16,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true); //start loading
   const [responseData, setResponseData] = useState<string | null>(null); //assumming text response
   const [error, setError] = useState<string | null>(null); //error message
+  const {logout} = useAuth() //logout function from context
 
   useEffect(() => {
     const fetchData = async () => {
@@ -79,6 +81,9 @@ export default function HomeScreen() {
           {responseData}
         </ThemedText>
       </ThemedView>
+      <View style={styles.buttonContainer}>
+        <Button title="Logout" onPress={logout} />
+      </View>
     </ParallaxScrollView>
   );
 }
@@ -106,4 +111,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  buttonContainer: {
+    marginTop: 20,
+    alignItems: 'center', // Center button
+},
 });

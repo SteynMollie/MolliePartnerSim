@@ -16,6 +16,10 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { initializeApp } from 'firebase/app';
 import { firebaseConfig } from '../firebaseConfig';
 
+//Import the authorisation
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+
+
 // Initialize Firebase
 try {
   initializeApp(firebaseConfig);
@@ -27,22 +31,14 @@ try {
 // Prevent splash screen auto-hide
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+
+// Inner component that uses the auth context for checks/redirects
+function AppLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
   const router = useRouter();
-
-  // Authentication State Simulation
-  const [isAuthenticated, setIsAuthenticated] = useState(false); 
-
-  // Simulated Login Function (used by login screen later or temp button)
-  const simulateLogin = () => {
-    console.log('Simulating login...');
-    setIsAuthenticated(true);
-    router.replace('/'); // Navigate to main app screen after login
-  };
+  const { isAuthenticated } = useAuth(); // Get auth state from context
 
   useEffect(() => {
     if (loaded) {
@@ -50,19 +46,19 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  // Authentication Check Effect
+  // Authentication Check Effect using context value
   useEffect(() => {
     if (!loaded) return; 
     console.log("Auth Check Effect: isAuthenticated =", isAuthenticated);
     if (!isAuthenticated) {
       console.log("Redirecting to /login...");
+      // Use replace to prevent going back to auth screens
       router.replace('/login');
     } else {
-      console.log("User is authenticated.");
-      // Optional: If somehow the user is authenticated but on the login route, redirect away
-      // if (router.pathname === '/login') { // Need to check current route correctly
-      //    router.replace('/');
-      // }
+       // If authenticated and somehow on login route, redirect to home
+       // This needs careful handling of router state, may not be needed
+       // depending on exact router setup. Let's keep it simple for now.
+       console.log("User is authenticated.");
     }
   }, [isAuthenticated, loaded, router]); 
 
@@ -71,27 +67,33 @@ export default function RootLayout() {
     return null;
   }
 
-  // Render the main structure
-  console.log("RootLayout rendering Stack navigator wrapped in GestureHandler...");
+  // Render the main Stack navigator structure
+  // The correct screen (login or app) will be shown based on the redirect effect
+  console.log("AppLayout rendering Stack navigator...");
   return (
-    // Add GestureHandlerRootView wrapper here
-    <GestureHandlerRootView style={{ flex: 1 }}> 
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          {/* Ensure folder is renamed app/(app) */}
-          <Stack.Screen name="(app)" options={{ headerShown: false }} />
-          <Stack.Screen name="login" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-        <StatusBar style="auto" />
+    <Stack>
+      <Stack.Screen name="(app)" options={{ headerShown: false }} />
+      <Stack.Screen name="login" options={{ headerShown: false }} />
+      <Stack.Screen name="+not-found" />
+    </Stack>
+  );
+} // End of AppLayout component
 
-        {/* TEMPORARY BUTTON TO TEST LOGIN FLOW */}
-        <View style={{ position: 'absolute', bottom: 100, left: 50, zIndex: 100, backgroundColor: 'rgba(200,200,200,0.7)' }}>
-           <Button title="TEMP LOGIN" onPress={simulateLogin} />
-        </View>
-        {/* END TEMPORARY BUTTON */}
 
-      </ThemeProvider>
-    </GestureHandlerRootView> // Close GestureHandlerRootView
+// Main RootLayout component wraps everything with providers
+export default function RootLayout() {
+  const colorScheme = useColorScheme();
+
+  return (
+    // Wrap with AuthProvider first
+    <AuthProvider> 
+      <GestureHandlerRootView style={{ flex: 1 }}> 
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          {/* Render the inner layout component which handles auth checks */}
+          <AppLayout /> 
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </GestureHandlerRootView>
+    </AuthProvider>
   );
 }

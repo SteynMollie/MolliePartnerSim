@@ -2,18 +2,30 @@ import React, { useState } from 'react';
 import { View, Text, Button, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { TextInput } from 'react-native-gesture-handler';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LoginScreen() { 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     // const router = useRouter(); // use this constant later for navigation
+    const { login } = useAuth(); // Get login function from context
 
-    const handleLoginPress = () => {
-        // TODO: Implement backend call
-        Alert.alert('Login attempt', `Email: ${email}, Password: ${password}`);
-        //placeholder action 
-    };
+    const handleLoginPress = async () => {
+        setIsLoading(true);
+        // --- TODO: Add actual login logic here ---
+        // Simulate a login request
+
+        console.log("login button pressed")
+        try {
+            login();
+        }
+        catch (error : any) {
+            console.error('Login error:', error);
+            Alert.alert('Login failed', error.message || 'Please check your credentials and try again.');
+            setIsLoading(false);
+        }
+    }
 
     return (
         <View style={styles.container}>
