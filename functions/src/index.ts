@@ -14,6 +14,6 @@ import * as logger from "firebase-functions/logger";
 // https://firebase.google.com/docs/functions/typescript
 
 export const helloWorld = onRequest((request, response) => {
-  logger.info("Hello logs!", {structuredData: true});
-  response.send("Hello from Firebase!");
+  logger.info("generating welcome message", {structuredData: true});
+  response.send("Hello user! Welcome to the Mollie Partner Simulator.");
 });
