@@ -1,9 +1,13 @@
 import {onRequest} from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
-
-// Import and configure CORS middelware
-// Allows requests from any origin
 import * as cors from "cors";
+
+import * as fuctions from "firebase-functions/v2";
+import * as admin from "firebase-admin";
+
+admin.initializeApp();
+
+const db = admin.firestore();
 const corsHandler = cors.default({origin: true});
 
 const HARDCODED_USERS = [
@@ -61,11 +65,6 @@ export const checkLogin = onRequest({cors: true}, (request, response) => {
         message: "Invalid credentials"});
     }
   });
-});
-
-export const helloWorld = onRequest((request, response) => {
-  logger.info("generating welcome message", {structuredData: true});
-  response.send("Hello user! Welcome to the Mollie Partner Simulator.");
 });
 
 
