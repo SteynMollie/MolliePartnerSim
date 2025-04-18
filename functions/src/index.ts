@@ -1,14 +1,18 @@
 import {onRequest} from "firebase-functions/v2/https";
+import {defineString, defineSecret} from "firebase-functions/params";
 import * as logger from "firebase-functions/logger";
 import * as cors from "cors";
-import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as crypto from "crypto";
+
 
 admin.initializeApp();
 
 const db = admin.firestore();
 const corsHandler = cors.default({origin: true});
+
+const mollieClientId = defineString("MOLLIE_CLIENTID");
+const mollieClientSecret = defineSecret("MOLLIE_CLIENTSECRET");
 
 const HARDCODED_USERS = [
   {
@@ -75,23 +79,48 @@ export const handleMollieOAuthCallback = onRequest(
       const code = request.query.code as string | undefined;
       const state = request.query.state as string | undefined;
 
-      // normally you would check the state here to prevent CSRF attacks
-      if (!state) {
-        logger.warn("State parameter is missing in the request");
-      } else {
-        logger.info("State parameter is present", {state});
+      const mollieError = request.query.error as string | undefined;
+      if (mollieError) {
+        const errorDesc = request.query.error_description as string | undefined;
+        logger.error(
+          "Mollie returned an error during OAuth flow",
+          {error: mollieError, description: errorDesc});
+        response.status(400).send(`
+          <html><body>
+            <h1>Mollie Connection Denied or Failed</h1>
+            <p>It looks like the connection request was denied or an error.</p>
+            <p><small>Error: ${
+  mollieError}${
+  errorDesc ? ` - ${
+    errorDesc}` : ""}</small></p>
+            <p>You can close this window and try again.</p>
+          </body></html>
+        `);
+        return; // Stop execution
       }
-      const userId = state || "unknown_user";
-      logger.warn("Using state as userId", {userId});
+      // --- End Error Check ---
 
+      const receivedState = state; // Use state directly as receivedState
+      const userId = receivedState;
+      logger.warn(
+        `Using received state directly as userId (INSECURE): ${
+          userId}`);
+      // --- End State Handling ---
+
+      // Check for code *after* checking for Mollie error
       if (!code) {
-        logger.error("Authorisation code missing from Mollie callback");
-        response.status(400).send("Authorisation code missing");
+        logger.error(
+          "Authorization code missing from Mollie callback, no error");
+        // Added more context to the message
+        response.status(
+          400).send(
+          "Authorization code missing or invalid request.");
         return;
       }
 
-      const clientId = functions.config().mollie.clientId;
-      const clientSecret = functions.config().mollie.client_secret;
+
+      const clientId = mollieClientId.value();
+      const clientSecret = mollieClientSecret.value();
       const projectId = process.env.GCLOUD_PROJECT || "molliepartnersim";
 
       // Construct the redirect URI using the projectId variable
@@ -149,12 +178,9 @@ export const handleMollieOAuthCallback = onRequest(
           connectedAt: admin.firestore.FieldValue.serverTimestamp(),
         };
 
-        if (userId === "unknown_user") {
-          throw new Error("User ID is undefined or invalid");
-        }
         await db.collection(
           "mollie_connections"
-        ).doc(userId).set(connectionData, {merge: true});
+        ).doc(userId || "unknown_user").set(connectionData, {merge: true});
         logger.info("Connection data saved to Firestore", {userId});
 
         response.status(200).send(`
@@ -200,7 +226,7 @@ export const getMollieOAuthUrl = onRequest(
     }
     logger.info("Generating OAuth URL for USER", {userId} );
 
-    const clientId = functions.config().mollie.clientId;
+    const clientId = mollieClientId.value();
     if (!clientId) {
       logger.error("Mollie client ID not set in environment variables");
       response.status(500).send("Mollie client ID not set");
@@ -284,6 +310,7 @@ export const getMollieOAuthUrl = onRequest(
     oauthUrl.searchParams.append("redirect_uri", redirectUri);
     oauthUrl.searchParams.append("scope", scopes.join(" "));
     oauthUrl.searchParams.append("state", state);
+    oauthUrl.searchParams.append("response_type", "code");
 
     logger.info("Generated Mollie OAuth URL for user",
       {userId, oauthUrl: oauthUrl.toString()});
@@ -293,5 +320,38 @@ export const getMollieOAuthUrl = onRequest(
     });
   }
 ); // End onRequest
+
+export const getMollieConnectionStatus = onRequest(
+  {cors: true}, (request, response) => {
+    corsHandler(request, response, async () => {
+      const userId = request.body.userId as string | undefined;
+      if (!userId) {
+        logger.warn("USER ID MISSING IN REQUEST BODY");
+        response.status(400).send("User ID is required");
+        return;
+      }
+
+      logger.info("Checking connection status for user", {userId});
+
+      try {
+        const docRef = db.collection("mollie_connections").doc(userId);
+        const docSnap = await docRef.get();
+
+        if (docSnap.exists) {
+          logger.info(`User ${userId} is connected to Mollie`);
+          response.status(200).send({isConnected: true});
+        } else {
+          logger.info(`User ${userId} is NOT connected to Mollie`);
+          response.status(200).send({isConnected: false});
+        }
+      } catch (error) {
+        logger.error("Error checking connection status", {error});
+        response.status(500).send({
+          isConnected: false,
+          message: "Error checking connection status"}
+        );
+      }
+    });
+  }); // End onRequest
 
 
