@@ -9,58 +9,11 @@ import React, { useState, useEffect } from 'react';
 
 import { useAuth } from '@/context/AuthContext';
 
-const FUNCTION_URL =  'https://us-central1-molliepartnersim.cloudfunctions.net/helloWorld';
 
 
 export default function HomeScreen() {
-  const [loading, setLoading] = useState(true); //start loading
-  const [responseData, setResponseData] = useState<string | null>(null); //assumming text response
-  const [error, setError] = useState<string | null>(null); //error message
   const {logout, user} = useAuth() //logout function from context
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setError(null); //reset error
-      setResponseData(null); //reset response
-
-      try{
-        console.log(`Calling function at: ${FUNCTION_URL}`);
-        const response = await fetch(FUNCTION_URL)
-        console.log('Response:', response);
-        if (!response.ok) {
-          throw new Error(`Network response was not ok:{response.status}`);
-        }
-
-        const textResponse = await response.text();
-        console.log(`Response text:`, textResponse);
-        setResponseData(textResponse);
-
-      }catch (error:any) {
-        console.error('Error fetching data:', error);
-        setError(error.message || 'An error occurred');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
-
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
-        <Text>Loading data from backend...</Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text>Error: {error}</Text>
-      </View>
-    );
-  }
 
   return (
     <ParallaxScrollView
@@ -74,6 +27,9 @@ export default function HomeScreen() {
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Welcome {user?.name}! </ThemedText>
         <HelloWave />
+      </ThemedView>
+      <ThemedView>
+        <Text>Go to settings to connect your Mollie Account.</Text>
       </ThemedView>
       <View style={styles.buttonContainer}>
         <Button title="Logout" onPress={logout} />
