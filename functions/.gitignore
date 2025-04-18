@@ -11,3 +11,4 @@ node_modules/
 
 firebaseConfig.ts
 functions/.env.molliepartnersim
+.env.molliepartnersim
