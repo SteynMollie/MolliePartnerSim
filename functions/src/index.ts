@@ -3,6 +3,7 @@ import * as logger from "firebase-functions/logger";
 import * as cors from "cors";
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import * as crypto from "crypto";
 
 admin.initializeApp();
 
@@ -89,11 +90,14 @@ export const handleMollieOAuthCallback = onRequest(
         return;
       }
 
-      const clientId = functions.config().mollie.client_id;
+      const clientId = functions.config().mollie.clientId;
       const clientSecret = functions.config().mollie.client_secret;
+      const projectId = process.env.GCLOUD_PROJECT || "molliepartnersim";
+
+      // Construct the redirect URI using the projectId variable
       const redirectUri =
-    `https://us-central1-${process.env.GCLOUD_PROJECT || "molliepartnersim"}
-    // .cloudfunctions.net/handleMollieOAuthCallback`;
+        `https://us-central1-${projectId}.cloudfunctions.net/handleMollieOAuthCallback`;
+
 
       if (!clientId || !clientSecret) {
         logger.error(
@@ -176,4 +180,118 @@ export const handleMollieOAuthCallback = onRequest(
       }
     }); // End CORS Handler
   }); // End onRequest
+
+export const getMollieOAuthUrl = onRequest(
+  {cors: true}, async (request, response) => {
+    logger.info("request received for mollie oauth URL");
+
+    const userId = request.body.userId as string | undefined;
+    if (!userId) {
+      logger.warn("USER ID MISSING IN REQUEST BODY");
+      response.status(400).send("User ID is required");
+      return;
+    }
+
+    const userExists = HARDCODED_USERS.some((u) => u.userId === userId);
+    if (!userExists) {
+      logger.warn("USER ID NOT FOUND IN HARDCODED USERS", userId);
+      response.status(400).send("User ID not found");
+      return;
+    }
+    logger.info("Generating OAuth URL for USER", {userId} );
+
+    const clientId = functions.config().mollie.clientId;
+    if (!clientId) {
+      logger.error("Mollie client ID not set in environment variables");
+      response.status(500).send("Mollie client ID not set");
+      return;
+    }
+    const projectId = process.env.GCLOUD_PROJECT || "molliepartnersim";
+
+    // Construct the redirect URI using the projectId variable
+    const redirectUri =
+        `https://us-central1-${projectId}.cloudfunctions.net/handleMollieOAuthCallback`;
+
+    const scopes = [
+      "payments.read",
+      "payments.write",
+      "refunds.read",
+      "refunds.write",
+      "customers.read",
+      "customers.write",
+      "mandates.read",
+      "mandates.write",
+      "subscriptions.read",
+      "subscriptions.write",
+      "profiles.read",
+      "profiles.write",
+      "invoices.read",
+      "settlements.read",
+      "orders.read",
+      "orders.write",
+      "shipments.read",
+      "shipments.write",
+      "organizations.read",
+      "organizations.write",
+      "onboarding.read",
+      "onboarding.write",
+      "shipments.read",
+      "shipments.write",
+      "organizations.read",
+      "organizations.write",
+      "onboarding.read",
+      "onboarding.write",
+      "payment-links.read",
+      "payment-links.write",
+      "balances.read",
+      "terminals.read",
+      "terminals.write",
+      "external-accounts.read",
+      "external-accounts.write",
+      "persons.read",
+      "persons.write",
+    ];
+
+    const state = crypto.randomBytes(16).toString("hex");
+
+    const oauthStatesCollection = db.collection("oauth_states");
+    const stateData = {
+      userId: userId,
+      state: state,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    try {
+      await oauthStatesCollection.doc(state).set(stateData);
+      logger.info("Stored OAuth state in Firestore.", {
+        userId: userId,
+        state: state, // Provide state for context if helpful
+      });
+    } catch (error) {
+      logger.error("Failed to store OAuth state.", {
+        userId: userId,
+        stateAttempted: state, // Good to know which state failed
+        errorDetails: error, // Pass the caught error object here
+      });
+      response.status(500).send({
+        success: false,
+        message: "Internal error storing state.", // Message on its own line
+      });
+    }
+
+    const oauthUrl = new URL("https://my.mollie.com/oauth2/authorize");
+    oauthUrl.searchParams.append("client_id", clientId);
+    oauthUrl.searchParams.append("redirect_uri", redirectUri);
+    oauthUrl.searchParams.append("scope", scopes.join(" "));
+    oauthUrl.searchParams.append("state", state);
+
+    logger.info("Generated Mollie OAuth URL for user",
+      {userId, oauthUrl: oauthUrl.toString()});
+    response.status(200).send({
+      success: true,
+      authorizeUrl: oauthUrl.toString(),
+    });
+  }
+); // End onRequest
+
 
