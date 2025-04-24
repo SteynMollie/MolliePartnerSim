@@ -121,11 +121,11 @@ export const handleMollieOAuthCallback = onRequest(
 
       const clientId = mollieClientId.value();
       const clientSecret = mollieClientSecret.value();
-      const projectId = process.env.GCLOUD_PROJECT || "molliepartnersim";
+
 
       // Construct the redirect URI using the projectId variable
       const redirectUri =
-        `https://us-central1-${projectId}.cloudfunctions.net/handleMollieOAuthCallback`;
+        "https://us-central1-molliepartnersim.cloudfunctions.net/handleMollieOAuthCallback";
 
 
       if (!clientId || !clientSecret) {
@@ -324,7 +324,7 @@ export const getMollieOAuthUrl = onRequest(
 export const getMollieConnectionStatus = onRequest(
   {cors: true}, (request, response) => {
     corsHandler(request, response, async () => {
-      const userId = request.body.userId as string | undefined;
+      const userId = request.query.userId as string | undefined;
       if (!userId) {
         logger.warn("USER ID MISSING IN REQUEST BODY");
         response.status(400).send("User ID is required");

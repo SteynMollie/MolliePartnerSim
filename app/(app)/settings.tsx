@@ -13,6 +13,7 @@ type ConnectionStatus = 'loading' | 'connected' | 'not_connected' | 'error';
 // ADDED: URLs for backend functions - REPLACE WITH YOUR ACTUAL URLs
 const GET_AUTH_URL_FUNCTION = 'https://getmollieoauthurl-2uhr4aw26q-uc.a.run.app'; 
 const CHECK_STATUS_FUNCTION_URL = 'https://us-central1-molliepartnersim.cloudfunctions.net/getMollieConnectionStatus'; 
+const MOLLIE_REDIRECT_URI = 'https://us-central1-molliepartnersim.cloudfunctions.net/handleMollieOAuthCallback';
 
 export default function SettingsScreen() { // Renamed component function for clarity
   const { user } = useAuth();
@@ -95,9 +96,10 @@ export default function SettingsScreen() { // Renamed component function for cla
 
       const authorizeUrl = data.authorizeUrl;
       console.log(`Received authorize URL: ${authorizeUrl}`);
+      console.log(`Using redirect URL for session close detection: ${MOLLIE_REDIRECT_URI}`); 
 
       // Using openAuthSessionAsync as you had it
-      const result = await WebBrowser.openAuthSessionAsync(authorizeUrl);
+      const result = await WebBrowser.openAuthSessionAsync(authorizeUrl, MOLLIE_REDIRECT_URI);
 
       console.log(`WebBrowser result: ${JSON.stringify(result)}`);
       
